@@ -1,0 +1,7 @@
+flask
+scikit-learn
+nltk
+fuzzywuzzy
+python-Levenshtein
+joblib
+numpy
