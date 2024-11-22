@@ -1,0 +1,144 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cybercrime Text Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold mb-6">Cybercrime Text Classifier</h1>
+            
+            <div class="space-y-4">
+                <textarea 
+                    id="input-text" 
+                    class="w-full h-32 p-3 border rounded-lg"
+                    placeholder="Enter text to classify..."
+                ></textarea>
+
+                <div class="flex gap-4">
+                    <button 
+                        id="predict-btn"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                        Classify Text
+                    </button>
+                    <button 
+                        id="examples-btn"
+                        class="border px-4 py-2 rounded hover:bg-gray-50"
+                    >
+                        Show Examples
+                    </button>
+                </div>
+
+                <div id="examples-container" class="hidden space-y-2 bg-gray-50 p-4 rounded">
+                    <button class="example-text block w-full text-left p-2 hover:bg-white rounded">
+                        Someone hacked my email account and is sending spam messages
+                    </button>
+                    <button class="example-text block w-full text-left p-2 hover:bg-white rounded">
+                        My credit card was used for unauthorized transactions
+                    </button>
+                    <button class="example-text block w-full text-left p-2 hover:bg-white rounded">
+                        I received threatening messages on social media
+                    </button>
+                    <button class="example-text block w-full text-left p-2 hover:bg-white rounded">
+                        Someone created a fake profile using my photos
+                    </button>
+                </div>
+
+                <div id="error-message" class="hidden text-red-500"></div>
+
+                <div id="prediction-results" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 border rounded-lg">
+                            <h3 class="font-semibold mb-2">Category</h3>
+                            <p id="category-text" class="text-lg"></p>
+                            <div class="mt-2 flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-gray-200 rounded-full">
+                                    <div id="category-confidence-bar" class="h-2 bg-blue-500 rounded-full transition-all duration-500"></div>
+                                </div>
+                                <span id="category-confidence-text" class="text-sm"></span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 border rounded-lg">
+                            <h3 class="font-semibold mb-2">Subcategory</h3>
+                            <p id="subcategory-text" class="text-lg"></p>
+                            <div class="mt-2 flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-gray-200 rounded-full">
+                                    <div id="subcategory-confidence-bar" class="h-2 bg-green-500 rounded-full transition-all duration-500"></div>
+                                </div>
+                                <span id="subcategory-confidence-text" class="text-sm"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Toggle examples
+            $('#examples-btn').click(function() {
+                $('#examples-container').toggleClass('hidden');
+            });
+
+            // Handle example text click
+            $('.example-text').click(function() {
+                $('#input-text').val($(this).text().trim());
+                $('#examples-container').addClass('hidden');
+                $('#prediction-results').addClass('hidden');
+                $('#error-message').addClass('hidden');
+            });
+
+            // Handle prediction
+            $('#predict-btn').click(function() {
+                const text = $('#input-text').val().trim();
+                if (!text) {
+                    $('#error-message').text('Please enter some text to classify').removeClass('hidden');
+                    return;
+                }
+
+                const $btn = $(this);
+                $btn.prop('disabled', true).text('Classifying...');
+                $('#error-message').addClass('hidden');
+                $('#prediction-results').addClass('hidden');
+
+                $.ajax({
+                    url: '/predict',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ text: text }),
+                    success: function(response) {
+                        if (response.success) {
+                            const pred = response.prediction;
+                            
+                            $('#category-text').text(pred.category);
+                            $('#subcategory-text').text(pred.subcategory);
+                            
+                            $('#category-confidence-bar').css('width', pred.category_confidence + '%');
+                            $('#subcategory-confidence-bar').css('width', pred.subcategory_confidence + '%');
+                            
+                            $('#category-confidence-text').text(pred.category_confidence + '%');
+                            $('#subcategory-confidence-text').text(pred.subcategory_confidence + '%');
+                            
+                            $('#prediction-results').removeClass('hidden');
+                        } else {
+                            $('#error-message').text('Error: ' + response.error).removeClass('hidden');
+                        }
+                    },
+                    error: function() {
+                        $('#error-message').text('Failed to get prediction. Please try again.').removeClass('hidden');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('Classify Text');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
